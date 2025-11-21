@@ -663,4 +663,3 @@ if st.session_state.left_playing or st.session_state.right_playing or st.session
     refresh_rate = 0.033  # 30fps
     time.sleep(refresh_rate)
     st.rerun()
-

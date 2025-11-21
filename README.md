@@ -1,48 +1,34 @@
-# Running Biomechanics Comparison App
+# Deployment Folder - Ready to Deploy!
 
-Streamlit Cloud deployment for running biomechanics video comparison.
+This folder contains everything needed to deploy the Running Biomechanics Comparison app to Streamlit Cloud.
 
-## Quick Start
+## Setup Videos
 
-1. **Deploy to Streamlit Cloud:**
-   - Go to [share.streamlit.io](https://share.streamlit.io)
-   - Connect your GitHub repository
-   - Set Main file: `app.py`
-   - Set Python version: 3.11
-   - Set Requirements file: `requirements-app.txt`
-   - Click Deploy
+To copy processed videos to this folder, run from the deployment folder:
 
-2. **Add Processed Videos:**
-   - Upload processed videos to `data/processed_videos/videos_with_overlay/`
-   - Upload pose data JSON to `data/processed_videos/pose_data/`
-   - Use Git LFS for large files, or upload via external storage
+```bash
+cd deployment
+python copy_videos.py
+```
+
+This will copy all processed videos from `../data/processed_videos/` to `deployment/data/processed_videos/`.
 
 ## Files Included
 
-- `app.py` - Main Streamlit application
-- `requirements-app.txt` - Minimal dependencies (no pose estimation libraries)
-- `.streamlit/config.toml` - Streamlit configuration with Syracuse theme
+- `app.py` - Streamlit application
+- `requirements.txt` - Dependencies
+- `copy_videos.py` - Script to copy videos
 
-## Directory Structure
+## After Copying Videos
 
-```
-deployment/
-├── app.py
-├── requirements-app.txt
-├── .gitignore
-├── .streamlit/
-│   └── config.toml
-└── data/
-    └── processed_videos/
-        ├── videos_with_overlay/    # Processed videos with pose overlay
-        ├── videos_keypoints_only/  # Skeleton-only videos
-        └── pose_data/              # Pose estimation JSON files
-```
+1. Use Git LFS for large files:
+   ```bash
+   git lfs install
+   git lfs track "deployment/data/**/*.mp4"
+   git lfs track "deployment/data/**/*.json"
+   git add .gitattributes deployment/
+   git commit -m "Add deployment with videos"
+   git push
+   ```
 
-## Notes
-
-- This deployment package contains **only the app** - no video processing
-- Videos must be processed separately using `process_all_videos.py`
-- The app displays pre-processed videos only
-- Use Git LFS for large video files or external cloud storage
-
+2. Deploy on Streamlit Cloud with main file: `deployment/app.py`
