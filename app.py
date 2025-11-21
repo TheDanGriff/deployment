@@ -82,8 +82,25 @@ if 'last_update_time' not in st.session_state:
 
 # Setup paths
 BASE_DIR = Path(__file__).parent
+
+# Determine where videos are located
+# Videos are in root data/processed_videos/ on GitHub
+# Try root directory first (if app.py is in root)
+ROOT_DATA_DIR = BASE_DIR / "data" / "processed_videos"
+# Try parent directory (if app.py is in deployment/ subfolder)
+PARENT_DATA_DIR = BASE_DIR.parent / "data" / "processed_videos"
+
+# Use whichever directory actually has videos
+PROCESSED_DIR = None
+if ROOT_DATA_DIR.exists() and (ROOT_DATA_DIR / "videos_with_overlay").exists():
+    PROCESSED_DIR = ROOT_DATA_DIR
+elif PARENT_DATA_DIR.exists() and (PARENT_DATA_DIR / "videos_with_overlay").exists():
+    PROCESSED_DIR = PARENT_DATA_DIR
+else:
+    # Default to root location (where videos are on GitHub)
+    PROCESSED_DIR = ROOT_DATA_DIR
+
 RAW_VIDEOS_DIR = BASE_DIR / "data" / "raw_videos"
-PROCESSED_DIR = BASE_DIR / "data" / "processed_videos"
 OVERLAY_DIR = PROCESSED_DIR / "videos_with_overlay"
 KEYPOINTS_DIR = PROCESSED_DIR / "videos_keypoints_only"
 POSE_DATA_DIR = PROCESSED_DIR / "pose_data"
@@ -244,7 +261,7 @@ def load_pose_data(video_name: str) -> Optional[Dict]:
 
 
 # Check if processed videos exist
-processed_videos_exist = OVERLAY_DIR.exists() and any(OVERLAY_DIR.glob("*_overlay.mp4"))
+processed_videos_exist = OVERLAY_DIR.exists() and any(OVERLAY_DIR.glob("*_overlay.mp4")) if OVERLAY_DIR else False
 
 # Header with Syracuse logo/colors
 col_header1, col_header2, col_header3 = st.columns([1, 2, 1])
@@ -256,6 +273,39 @@ with col_header2:
 # Check for processed videos
 if not processed_videos_exist:
     st.warning("⚠️ **No processed videos found!**")
+    
+    # Debug information
+    with st.expander("🔍 Debug Information", expanded=True):
+        st.write(f"**App.py location (BASE_DIR):** `{BASE_DIR}`")
+        st.write(f"**Using PROCESSED_DIR:** `{PROCESSED_DIR}`")
+        st.write(f"**Looking for videos in:** `{OVERLAY_DIR}`")
+        st.write(f"**Directory exists:** {OVERLAY_DIR.exists()}")
+        st.write(f"\n**Checking root location:** `{ROOT_DATA_DIR}` - Exists: {ROOT_DATA_DIR.exists()}")
+        st.write(f"**Checking parent location:** `{PARENT_DATA_DIR}` - Exists: {PARENT_DATA_DIR.exists()}")
+        
+        if OVERLAY_DIR.exists():
+            files_found = list(OVERLAY_DIR.glob("*_overlay.mp4"))
+            st.write(f"**Videos found:** {len(files_found)}")
+            if files_found:
+                st.write("Files:")
+                for f in files_found[:5]:  # Show first 5
+                    st.write(f"  - {f.name}")
+            else:
+                st.write("**No `*_overlay.mp4` files found in directory**")
+                # Check what files ARE in the directory
+                all_files = list(OVERLAY_DIR.glob("*"))
+                if all_files:
+                    st.write("**Files actually in directory:**")
+                    for f in all_files[:10]:
+                        st.write(f"  - {f.name}")
+        else:
+            st.write(f"**Directory does not exist!**")
+            st.write(f"**Parent directory exists:** {OVERLAY_DIR.parent.exists()}")
+            if OVERLAY_DIR.parent.exists():
+                st.write("**Contents of parent directory:**")
+                for item in OVERLAY_DIR.parent.iterdir():
+                    st.write(f"  - {item.name} ({'directory' if item.is_dir() else 'file'})")
+    
     st.info(
         "Please run the batch processing script first:\n\n"
         "```bash\npython process_all_videos.py\n```\n\n"
@@ -279,13 +329,17 @@ st.sidebar.markdown("<h2 style='color: #002D72;'>Video Selection</h2>", unsafe_a
 
 # Get available processed videos
 processed_video_names = []
-for overlay_file in OVERLAY_DIR.glob("*_overlay.mp4"):
-    video_name = overlay_file.stem.replace("_overlay", "")
-    processed_video_names.append(video_name)
+if OVERLAY_DIR.exists():
+    for overlay_file in OVERLAY_DIR.glob("*_overlay.mp4"):
+        video_name = overlay_file.stem.replace("_overlay", "")
+        processed_video_names.append(video_name)
 processed_video_names = sorted(processed_video_names)
 
 if not processed_video_names:
     st.error("No processed videos found. Please run process_all_videos.py first.")
+    st.error(f"Looking in: `{OVERLAY_DIR}`")
+    if not OVERLAY_DIR.exists():
+        st.error(f"Directory does not exist! Base directory is: `{BASE_DIR}`")
     st.stop()
 
 # Create video display names with parsed info
